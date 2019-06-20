@@ -22,9 +22,3 @@ def related_pages(content):
     for index in range(len(result)):
         result[index] = ''.join(result[index].split("\""))
     return result
-
-
-link = "http://www.unb.br/"
-content = getPageHtml(link)
-result = related_pages(content)
-print(result)
