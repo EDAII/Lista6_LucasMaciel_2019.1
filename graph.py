@@ -1,3 +1,4 @@
+from copy import deepcopy
 from html_read import getPageHtml, related_pages
 
 
@@ -28,6 +29,8 @@ class Graph:
     def breadth_search(graph):
         queue = []  # cria fila de execucao
         distance = 0
+        # realiza uma copia, para nao afetar a variavel original
+        node = deepcopy(graph)
         Graph.clear_graph(graph)
 
         def enqueue(node):
@@ -36,28 +39,28 @@ class Graph:
         def dequeue():
             return queue.pop(0)  # remove um no da fila
 
-        print("root = ", graph[0].value)
-        for node in graph:
-            # nós que aparecem aqui, são os nós iniciais de uma secao
-            if node.visited == False:
-                distance = 0  # reseta a distancia
-                node.layer = distance
-                enqueue(node)
-                node.visited = True
-                while len(queue) != 0:
-                    u = dequeue()  # remove primeiro da fila
-                    # soma 1 a distancia, pois vai ser verificado
-                    # no proximo nivel os seus vizinhos
-                    if u.layer == distance:
-                        distance += 1
-                    print(u.value)
-                    for v in u.edges:
-                        # nós que aparecem aqui, são os nós que foram referenciados
-                        # por outros nós, como vizinhos
-                        if v.visited == False:
-                            v.visited = True
-                            v.layer = distance
-                            enqueue(v)
+        # realiza busca em largura dos nos alcancaveis a partir do no principal
+        if not hasattr(node, 'visited') or node.visited == False:
+            distance = 0  # reseta a distancia
+            node.layer = distance
+            enqueue(node)
+            node.visited = True
+            while len(queue) != 0:
+                u = dequeue()  # remove primeiro da fila
+                # soma 1 a distancia, pois vai ser verificado
+                # no proximo nivel os seus vizinhos
+                if u.layer == distance:
+                    distance += 1
+                print(u.value)
+                for v in u.edges:
+                    # nós que aparecem aqui, são os nós que foram referenciados
+                    # por outros nós, como vizinhos
+                    if not hasattr(v, 'visited') or v.visited == False:
+                        # verifica se o nó não foi visitado ou ainda nao tem
+                        # o atributo de visita
+                        v.visited = True
+                        v.layer = distance
+                        enqueue(v)
 
 
 def create_nodes(values=[]):
@@ -67,21 +70,30 @@ def create_nodes(values=[]):
     return r
 
 
-def create_relationship(node):
+def create_relationship(node, base_url):
     content = getPageHtml(node.value)
-    values = related_pages(content)
+    values = related_pages(content, base_url, True)
     edges = create_nodes(values)
     for edge in edges:
         node.add_edge(edge)
     return edges
 
 
-def main():
-    link = "http://www.unb.br/"
+def create_graph_pages_html(url):
+    node = Object(url)
+    edges = create_relationship(node, url)
+    # for i in range(len(edges)):
+    # i = 11
+    # create_relationship(edges[i], edges[i].value)
+    # print("vizinho ", i)
+    return node
 
-    node = Object(link)
-    all_nodes = create_relationship(node)
-    Graph.breadth_search([node, *all_nodes])
+
+def main():
+    url = "http://www.unb.br"
+    initial_page = create_graph_pages_html(url)
+
+    Graph.breadth_search(initial_page)
 
 
 main()

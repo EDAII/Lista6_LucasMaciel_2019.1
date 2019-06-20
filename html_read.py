@@ -1,24 +1,43 @@
 import urllib
-from urllib import request
+from urllib import request, error
 import re
+from socket import error as SocketError
+import errno
 
 
 def getPageHtml(url='https://'):
     '''
         funcao para retornar conteudo html da url passada
     '''
+
+    print("PAGE: ", url)
     try:
-        yTUBE = urllib.request.urlopen(url).read()
-        return str(yTUBE)
-    except urllib.error.URLError as e:
+        response = urllib.request.urlopen(url).read()
+        return str(response)
+    # Previne para que um erro na pagina nao feche o programa
+    except SocketError as e:
+        if e.errno != errno.ECONNRESET:
+            raise
+        pass
+    except error.HTTPError as e:
         print(e.reason)
-        exit(1)
 
 
-def related_pages(content):
-    url_match = '"https?://\S+"'
-    regex = re.compile(r'' + url_match)
-    result = re.findall(regex, str(content))
+def related_pages(content, base_url, same_domain=True):
+    '''
+        Funcao retorna as urls encontradas na pagina,
+        se same_domain estiver em True, so retorna as urls que
+        tem o mesmo dominio, caso contrário retorna todos os urls no
+        formato htpp(s) encontrados na pagina
+    '''
+
+    if same_domain == True:
+        base_url = base_url.replace("http", "https?")
+        url_match = re.compile(r'"%s\/?\S+"' % (base_url))
+    else:
+        url_match = re.compile(r'"https?://\S+"')
+
+    result = re.findall(url_match, str(content))
     for index in range(len(result)):
         result[index] = ''.join(result[index].split("\""))
     return result
