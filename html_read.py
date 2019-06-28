@@ -32,12 +32,17 @@ def related_pages(content, base_url, same_domain=True):
     '''
 
     if same_domain == True:
+        # Verifica se a url pertence ao mesmo dominio do site principal
+        # tambem retira urls com extensoes de arquivo(.pdf, .png, .jpg, .css, .js)
         base_url = base_url.replace("http", "https?")
-        url_match = re.compile(r'"%s\/?\S+"' % (base_url))
+        url_match = re.compile(
+            r'"%s\/?(?!\S*\.pdf)\S*"' % (base_url))
     else:
         url_match = re.compile(r'"https?://\S+"')
 
     result = re.findall(url_match, str(content))
+    print("TAMANHO: ", len(result))
+
     for index in range(len(result)):
         result[index] = ''.join(result[index].split("\""))
     return result
