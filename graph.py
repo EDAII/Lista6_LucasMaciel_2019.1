@@ -1,9 +1,9 @@
 from copy import deepcopy
-from html_read import ReadHtml
+from html_read import HtmlReader
 
 # importar os metodos
-getPageHtml = ReadHtml.getPageHtml
-related_pages = ReadHtml.related_pages
+getPageHtml = HtmlReader.getPageHtml
+related_pages = HtmlReader.related_pages
 
 # lista de paginas que já foram encontradas
 page_list = []
@@ -33,7 +33,7 @@ class Graph:
         else:
             return []
 
-    def breadth_search(initial_page):
+    def breadth_search(initial_page, max_layer=1):
         queue = []  # cria fila de execucao
         distance = 0
         # realiza uma copia, para nao afetar a variavel original
@@ -41,8 +41,9 @@ class Graph:
         Graph.clear_graph(node)
 
         def enqueue(node):
-            queue.append(node)  # adiciona no na fila
-            add_page_list(node)
+            add = add_page_list(node)
+            if add == True:
+                queue.append(node)  # adiciona no na fila
 
         def dequeue():
             return queue.pop(0)  # remove um no da fila
@@ -51,6 +52,8 @@ class Graph:
             if node.url not in page_list:
                 # adiciona a lista de paginas
                 page_list.append(node.url)
+                return True
+            return False
 
         # realiza busca em largura dos nos alcancaveis a partir do no principal
         if not hasattr(node, 'visited') or node.visited == False:
@@ -58,7 +61,8 @@ class Graph:
             node.layer = distance
             enqueue(node)
             node.visited = True
-            while len(queue) != 0 and distance <= 2:
+            # Algoritmo continua a baixar a pagina ate a camada indicada
+            while len(queue) != 0 and distance <= max_layer:
                 u = dequeue()  # remove primeiro da fila
                 # soma 1 a distancia, pois vai ser verificado
                 # no proximo nivel os seus vizinhos
@@ -101,9 +105,11 @@ def create_relationship(node, base_url, main=False):
 def main():
     url = "http://www.unb.br"
     initial_page = Object(url)
-    Graph.breadth_search(initial_page)
+    Graph.breadth_search(initial_page, 2)
 
-    print("Lista de Paginas = ", page_list)
+    print("\nLista de Paginas = ")
+    for p in page_list:
+        print(p)
 
 
 main()
