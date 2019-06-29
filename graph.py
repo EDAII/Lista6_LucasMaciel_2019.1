@@ -4,7 +4,7 @@ from html_read import getPageHtml, related_pages
 
 class Object:
     def __init__(self, value):
-        self.value = value
+        self.url = value
         self.edges = []
 
     def add_edge(self, object):
@@ -26,11 +26,11 @@ class Graph:
         else:
             return []
 
-    def breadth_search(graph):
+    def breadth_search(initial_page):
         queue = []  # cria fila de execucao
         distance = 0
         # realiza uma copia, para nao afetar a variavel original
-        node = deepcopy(graph)
+        node = deepcopy(initial_page)
         Graph.clear_graph(node)
 
         def enqueue(node):
@@ -45,22 +45,28 @@ class Graph:
             node.layer = distance
             enqueue(node)
             node.visited = True
-            while len(queue) != 0:
+            while len(queue) != 0 and distance <= 0:
                 u = dequeue()  # remove primeiro da fila
                 # soma 1 a distancia, pois vai ser verificado
                 # no proximo nivel os seus vizinhos
                 if u.layer == distance:
                     distance += 1
-                print(u.value)
+                if u == node:
+                    main = True
+                else:
+                    main = False
+                u.edges = create_relationship(u, u.url, main)
                 for v in u.edges:
                     # nós que aparecem aqui, são os nós que foram referenciados
                     # por outros nós, como vizinhos
+                    print(v.url)
                     if not hasattr(v, 'visited') or v.visited == False:
                         # verifica se o nó não foi visitado ou ainda nao tem
                         # o atributo de visita
                         v.visited = True
                         v.layer = distance
                         enqueue(v)
+                # em teste, apenas passa pelos vizinhos e fecha
 
 
 def create_nodes(values=[]):
@@ -70,28 +76,18 @@ def create_nodes(values=[]):
     return r
 
 
-def create_relationship(node, base_url):
-    content = getPageHtml(node.value)
-    values = related_pages(content, base_url, False)
+def create_relationship(node, base_url, main=False):
+    content = getPageHtml(node.url, main)
+    values = related_pages(content, base_url, True)
     edges = create_nodes(values)
     for edge in edges:
         node.add_edge(edge)
     return edges
 
 
-def create_graph_pages_html(url):
-    node = Object(url)
-    edges = create_relationship(node, url)
-    # for i in range(len(edges)):
-    #     print("vizinho ", i)
-    #     create_relationship(edges[i], edges[i].value)
-    return node
-
-
 def main():
     url = "http://www.unb.br"
-    initial_page = create_graph_pages_html(url)
-
+    initial_page = Object(url)
     Graph.breadth_search(initial_page)
 
 

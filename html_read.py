@@ -3,17 +3,21 @@ from urllib import request, error
 import re
 from socket import error as SocketError
 import errno
+import os
 
 
-def getPageHtml(url='https://'):
+def getPageHtml(url='https://', main=False):
     '''
         funcao para retornar conteudo html da url passada
+        main=True, faz com que a funcao savePage crie uma pasta baseada na
+            <title> da pagina principal, se nao, cria as pastas baseadas
+            na url
     '''
 
     print("PAGE: ", url)
     try:
         response = urllib.request.urlopen(url).read().decode('utf8')
-        savePage(response)
+        savePage(url, response, main)
         return str(response)
     # Previne para que um erro na pagina nao feche o programa
     except SocketError as e:
@@ -24,9 +28,38 @@ def getPageHtml(url='https://'):
         print(e.reason)
 
 
-def savePage(page):
-    filename = 'test.html'
-    print(page)
+def format_path(url, folders):
+    # Funcao para formatar corretamente o nome do path
+    # diferencia urls que terminam com / ou nao
+    path = str([folder+'/' if folder[-1] != '/' else folder[:-1]
+                for folder in folders])[2:-2]
+    return path
+
+
+def savePage(url, page, main=False):
+    folders = []
+    # extrair o titulo da pagina principal
+    if main == True:
+        folders.append(re.findall(
+            r'<title>.*</title>', page)[0].replace('<title>', '').replace('</title>', ''))
+        pagename = re.sub(r'/$', '', (re.sub(r'https?://', '', url)))
+        # concatenar a(s) pasta(s) criadas no caminho do arquivo com o nome do arquivo
+        filename = r'%s%s.html' % (format_path(url, folders), pagename)
+    else:
+        folders.extend(re.split(r'/(?=\S+)', re.split('https?://', url)[1]))
+        # concatenar a(s) pasta(s) criadas no caminho do arquivo com o nome do arquivo
+        filename = r'%s.html' % (format_path(url, folders))
+
+    print('Pastas = ', folders)
+    for folder in folders:
+        if not os.path.exists(folder):
+            try:
+                os.mkdir(folder)
+            except OSError:
+                print("Creation of the directory %s failed" % folder)
+
+    print("CAMINHO= ", filename)
+
     file = open(filename, 'w')
     file.write(r'%s' % (str(page)))
     file.close()
