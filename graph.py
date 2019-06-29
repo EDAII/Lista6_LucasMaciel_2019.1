@@ -31,7 +31,7 @@ class Graph:
         distance = 0
         # realiza uma copia, para nao afetar a variavel original
         node = deepcopy(graph)
-        Graph.clear_graph(graph)
+        Graph.clear_graph(node)
 
         def enqueue(node):
             queue.append(node)  # adiciona no na fila
@@ -72,7 +72,7 @@ def create_nodes(values=[]):
 
 def create_relationship(node, base_url):
     content = getPageHtml(node.value)
-    values = related_pages(content, base_url, True)
+    values = related_pages(content, base_url, False)
     edges = create_nodes(values)
     for edge in edges:
         node.add_edge(edge)
@@ -83,9 +83,8 @@ def create_graph_pages_html(url):
     node = Object(url)
     edges = create_relationship(node, url)
     # for i in range(len(edges)):
-    # i = 11
-    # create_relationship(edges[i], edges[i].value)
-    # print("vizinho ", i)
+    #     print("vizinho ", i)
+    #     create_relationship(edges[i], edges[i].value)
     return node
 
 
