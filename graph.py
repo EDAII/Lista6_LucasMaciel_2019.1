@@ -5,6 +5,9 @@ from html_read import ReadHtml
 getPageHtml = ReadHtml.getPageHtml
 related_pages = ReadHtml.related_pages
 
+# lista de paginas que já foram encontradas
+page_list = []
+
 
 class Object:
     def __init__(self, value):
@@ -39,9 +42,15 @@ class Graph:
 
         def enqueue(node):
             queue.append(node)  # adiciona no na fila
+            add_page_list(node)
 
         def dequeue():
             return queue.pop(0)  # remove um no da fila
+
+        def add_page_list(node):
+            if node.url not in page_list:
+                # adiciona a lista de paginas
+                page_list.append(node.url)
 
         # realiza busca em largura dos nos alcancaveis a partir do no principal
         if not hasattr(node, 'visited') or node.visited == False:
@@ -93,6 +102,8 @@ def main():
     url = "http://www.unb.br"
     initial_page = Object(url)
     Graph.breadth_search(initial_page)
+
+    print("Lista de Paginas = ", page_list)
 
 
 main()
