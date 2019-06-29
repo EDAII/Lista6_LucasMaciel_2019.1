@@ -1,5 +1,9 @@
 from copy import deepcopy
-from html_read import getPageHtml, related_pages
+from html_read import ReadHtml
+
+# importar os metodos
+getPageHtml = ReadHtml.getPageHtml
+related_pages = ReadHtml.related_pages
 
 
 class Object:
@@ -45,7 +49,7 @@ class Graph:
             node.layer = distance
             enqueue(node)
             node.visited = True
-            while len(queue) != 0 and distance <= 0:
+            while len(queue) != 0 and distance <= 2:
                 u = dequeue()  # remove primeiro da fila
                 # soma 1 a distancia, pois vai ser verificado
                 # no proximo nivel os seus vizinhos
