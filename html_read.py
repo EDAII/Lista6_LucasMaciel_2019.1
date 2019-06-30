@@ -28,6 +28,12 @@ class HtmlReader:
         except error.HTTPError as e:
             print(e.reason)
 
+    def get_files_urls(content, base_url, main=False):
+        url_types = '(\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
+
+        url_files = re.findall(r'="/%s"' % (url_types), content)
+        FileManager.download_file(base_url, url_files)
+
     def get_achievable_urls(content, base_url, same_domain=True, main=False):
         url_no_types = '(?!\S*\.pdf|\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
         if same_domain == True:
@@ -60,6 +66,8 @@ class HtmlReader:
         '''
         result = HtmlReader.get_achievable_urls(
             content, base_url, same_domain, main)
+
+        HtmlReader.get_files_urls(content, base_url, main)
         print("TAMANHO: ", len(result))
 
         for index in range(len(result)):
@@ -87,12 +95,25 @@ class FileManager:
             else:
                 path_folder_create = path_folder_create + '/' + folder
             first_folder = False
-            print("Pasta Criada = ", path_folder_create)
             if not os.path.exists(folder):
                 try:
                     os.mkdir(path_folder_create)
                 except OSError:
-                    print("Diretorio ja existe %s failed" % folder)
+                    continue
+
+    def download_file(base_url, url_files, main=False):
+        for url_file in url_files:
+            folders = re.split(r'/', url_file)
+            folders = folders[:-1]
+            FileManager.create_folder(folders, main)
+            print("ARQUIVO = ", r'%s/%s' % (base_url, url_file))
+
+            try:
+                urllib.request.urlretrieve(
+                    r'%s/%s' % (base_url, url_file), r'%s/%s' % (FileManager.main_folder, url_file))
+            # Previne para que um erro na pagina nao feche o programa
+            except Exception as e:
+                continue
 
     def savePage(url, page, main=False):
         folders = []
@@ -117,11 +138,8 @@ class FileManager:
             filepath = r'%s/%s%s.html' % (FileManager.main_folder,
                                           FileManager.format_path(url, folders), filename)
 
-        print('Pastas = ', folders)
         # variavel para concatenar o caminho de criacao das pastas
         FileManager.create_folder(folders, main)
-
-        print("CAMINHO= ", filepath)
 
         file = open(filepath, 'w')
         file.write(r'%s' % (str(page)))
