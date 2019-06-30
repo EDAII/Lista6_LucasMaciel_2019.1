@@ -18,8 +18,7 @@ class HtmlReader:
 
         print("\nPAGE: ", url)
         try:
-            response = urllib.request.urlopen(url).read().decode('utf8')
-            FileManager.savePage(url, response, main)
+            response = str(urllib.request.urlopen(url).read().decode('utf8'))
             return str(response)
         # Previne para que um erro na pagina nao feche o programa
         except SocketError as e:
@@ -29,7 +28,29 @@ class HtmlReader:
         except error.HTTPError as e:
             print(e.reason)
 
-    def related_pages(content, base_url, same_domain=True):
+    def get_achievable_urls(content, base_url, same_domain=True, main=False):
+        url_no_types = '(?!\S*\.pdf|\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
+        if same_domain == True:
+            # Verifica se a url pertence ao mesmo dominio do site principal
+            # tambem retira urls com extensoes de arquivo(.pdf, .png, .jpg, .css, .js)
+            # altera url para a regex da url verificada
+            base_url_regex = base_url.replace("http", "https?")
+            url_match = re.compile(
+                r'href="%s\/?%s"' % (base_url_regex, url_no_types))
+        else:
+            url_match = re.compile(r'href="https?://%s"' % (url_no_types))
+
+        # urls encontradas
+        urls = re.findall(url_match, str(content))
+        # troca as urls encontradas para as pastas locais
+        for url in urls:
+            url_split = re.sub(r'https?://', '/', url)
+            content = content.replace(url, r'%s%s' %
+                                      (url_split[:-1], '.html"'))
+        FileManager.savePage(base_url, content, main)
+        return urls
+
+    def related_pages(content, base_url, same_domain=True, main=False):
         '''
             **Funcao utilizada para Retornar os Vizinhos da Pagina atual**
             Funcao retorna as urls encontradas na pagina,
@@ -37,18 +58,8 @@ class HtmlReader:
             tem o mesmo dominio, caso contrário retorna todos os urls no
             formato htpp(s) encontrados na pagina
         '''
-        url_no_types = '(?!\S*\.pdf|\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
-        if same_domain == True:
-            # Verifica se a url pertence ao mesmo dominio do site principal
-            # tambem retira urls com extensoes de arquivo(.pdf, .png, .jpg, .css, .js)
-            # altera url para a regex da url verificada
-            base_url = base_url.replace("http", "https?")
-            url_match = re.compile(
-                r'href="%s\/?%s"' % (base_url, url_no_types))
-        else:
-            url_match = re.compile(r'href="https?://%s"' % (url_no_types))
-
-        result = re.findall(url_match, str(content))
+        result = HtmlReader.get_achievable_urls(
+            content, base_url, same_domain, main)
         print("TAMANHO: ", len(result))
 
         for index in range(len(result)):

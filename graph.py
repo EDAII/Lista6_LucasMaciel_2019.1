@@ -33,6 +33,20 @@ class Graph:
         else:
             return []
 
+    def create_nodes(values=[]):
+        r = []
+        for value in values:
+            r.append(Object(value))
+        return r
+
+    def create_relationship(node, base_url, main=False):
+        content = getPageHtml(node.url, main)
+        values = related_pages(content, base_url, True, main)
+        edges = Graph.create_nodes(values)
+        for edge in edges:
+            node.add_edge(edge)
+        return edges
+
     def breadth_search(initial_page, max_layer=1):
         queue = []  # cria fila de execucao
         distance = 0
@@ -72,7 +86,7 @@ class Graph:
                     main = True
                 else:
                     main = False
-                u.edges = create_relationship(u, u.url, main)
+                u.edges = Graph.create_relationship(u, u.url, main)
                 for v in u.edges:
                     # nós que aparecem aqui, são os nós que foram referenciados
                     # por outros nós, como vizinhos
@@ -84,22 +98,6 @@ class Graph:
                         v.layer = distance
                         enqueue(v)
                 # em teste, apenas passa pelos vizinhos e fecha
-
-
-def create_nodes(values=[]):
-    r = []
-    for value in values:
-        r.append(Object(value))
-    return r
-
-
-def create_relationship(node, base_url, main=False):
-    content = getPageHtml(node.url, main)
-    values = related_pages(content, base_url, True)
-    edges = create_nodes(values)
-    for edge in edges:
-        node.add_edge(edge)
-    return edges
 
 
 def main():
