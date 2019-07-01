@@ -34,7 +34,7 @@ class HtmlReader:
         url_types = '(\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)'
 
         url_files = re.findall(r'[src|href]="%s"' % url_types, content)
-        FileManager.download_file(base_url, url_files)
+        return url_files
 
     def get_achievable_urls(content, base_url, same_domain=True, main=False):
         url_no_types = '(?!\S*\.pdf|\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
@@ -55,7 +55,14 @@ class HtmlReader:
         #     url_split = re.sub(r'https?://', '/', url)
         #     content = content.replace(url, r'%s%s' %
         #                               (url_split[:-1], '.html"'))
-        FileManager.savePage(base_url, content, main)
+        # salva as paginas em pastas (inclusive a pasta main)
+        url_files = HtmlReader.get_files_urls(content, base_url, main)
+        for url_file in url_files:
+            path_folders = re.sub(r'https?://', '', url_file)
+            filename = re.split('/', path_folders)[-1]
+            content = content.replace(url_file, r'./%s' % filename)
+        FileManager.savePage(base_url, content, url_files, main)
+        # trocar os links dos arquivos para a pasta local
         return urls
 
     def related_pages(content, base_url, same_domain=True, main=False):
@@ -69,7 +76,7 @@ class HtmlReader:
         result = HtmlReader.get_achievable_urls(
             content, base_url, same_domain, main)
 
-        HtmlReader.get_files_urls(content, base_url, main)
+        # HtmlReader.get_files_urls(content, base_url, main)
         print("TAMANHO: ", len(result))
 
         for index in range(len(result)):
@@ -107,9 +114,9 @@ class FileManager:
         # baixa os arquivos que precisam estar no armazenamento local
         for url_file in url_files:
             path_folders = re.sub(r'https?://', '', url_file)
-            folders = re.split(r'/', path_folders)
-            folders = folders[:-1]
-            FileManager.create_folder(folders, main)
+            # folders = re.split(r'/', path_folders)
+            # folders = folders[:-1]
+            # FileManager.create_folder(folders, main)
 
             try:
                 # antes de baixar, verifica se a url é absoluta(link completo)
@@ -132,13 +139,14 @@ class FileManager:
                 # contornar erros de certificado
                 ssl._create_default_https_context = ssl._create_unverified_context
 
+                filename = re.split('/', path_folders)[-1]
                 urllib.request.urlretrieve(
-                    url_file, r'%s/%s' % (FileManager.main_folder, path_folders))
+                    url_file, r'%s/%s' % (FileManager.main_folder, filename))
             # Previne para que um erro na pagina nao feche o programa
             except error.HTTPError or error.URLError:
                 continue
 
-    def savePage(url, page, main=False):
+    def savePage(url, page, url_files, main=False):
         folders = []
         # extrair o titulo da pagina principal
         if main == True:
@@ -160,7 +168,8 @@ class FileManager:
             folders = folders[:-1]
             filepath = r'%s/%s%s.html' % (FileManager.main_folder,
                                           FileManager.format_path(url, folders), filename)
-
+        ####################################################################
+        FileManager.download_file(url, url_files)
         # variavel para concatenar o caminho de criacao das pastas
         FileManager.create_folder(folders, main)
 
