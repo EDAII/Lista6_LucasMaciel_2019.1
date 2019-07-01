@@ -47,7 +47,7 @@ class Graph:
             node.add_edge(edge)
         return edges
 
-    def breadth_search(initial_page, max_layer=1):
+    def breadth_search(initial_page, max_layer=0):
         queue = []  # cria fila de execucao
         distance = 0
         # realiza uma copia, para nao afetar a variavel original
@@ -103,7 +103,7 @@ class Graph:
 def main():
     url = "http://www.unb.br"
     initial_page = Object(url)
-    Graph.breadth_search(initial_page, 2)
+    Graph.breadth_search(initial_page, 0)
 
     print("\nLista de Paginas = ")
     for p in page_list:

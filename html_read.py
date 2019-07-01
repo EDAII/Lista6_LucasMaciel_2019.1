@@ -1,5 +1,6 @@
 import urllib
 from urllib import request, error
+import ssl  # contornar erros de certificado
 import re
 from socket import error as SocketError
 import errno
@@ -29,9 +30,10 @@ class HtmlReader:
             print(e.reason)
 
     def get_files_urls(content, base_url, main=False):
-        url_types = '(\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
+        # seleciona as urls no formato ="/.<format>"
+        url_types = '(\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)'
 
-        url_files = re.findall(r'="/%s"' % (url_types), content)
+        url_files = re.findall(r'[src|href]="%s"' % url_types, content)
         FileManager.download_file(base_url, url_files)
 
     def get_achievable_urls(content, base_url, same_domain=True, main=False):
@@ -49,10 +51,10 @@ class HtmlReader:
         # urls encontradas
         urls = re.findall(url_match, str(content))
         # troca as urls encontradas para as pastas locais
-        for url in urls:
-            url_split = re.sub(r'https?://', '/', url)
-            content = content.replace(url, r'%s%s' %
-                                      (url_split[:-1], '.html"'))
+        # for url in urls:
+        #     url_split = re.sub(r'https?://', '/', url)
+        #     content = content.replace(url, r'%s%s' %
+        #                               (url_split[:-1], '.html"'))
         FileManager.savePage(base_url, content, main)
         return urls
 
@@ -102,17 +104,38 @@ class FileManager:
                     continue
 
     def download_file(base_url, url_files, main=False):
+        # baixa os arquivos que precisam estar no armazenamento local
         for url_file in url_files:
-            folders = re.split(r'/', url_file)
+            path_folders = re.sub(r'https?://', '', url_file)
+            folders = re.split(r'/', path_folders)
             folders = folders[:-1]
             FileManager.create_folder(folders, main)
-            print("ARQUIVO = ", r'%s/%s' % (base_url, url_file))
 
             try:
+                # antes de baixar, verifica se a url é absoluta(link completo)
+                # exemplo = aaa.com.br/k.js
+                # ou é uma url relativa a base_url da pagina
+                if not re.search(r'https://|\S*(\.\S+)+/\S*\.\S+', url_file):
+                    url_file = r'%s/%s' % (base_url, url_file)
+                else:
+                    # remove '//' de urls mal formatadas, ex: //link.com/dd.js
+                    url_file = re.sub(r'^/{2,}', 'https://', url_file)
+                print("ARQUIVO = ", r'%s' % url_file)
+                # Request para conseguir baixar de servidores que nao permitem bots
+                # usa uma mascara para o servidor enxergar a requisicao como se fosse um
+                # navegador conhecido
+                opener = urllib.request.build_opener()
+                opener.addheaders = [
+                    ('User-Agent', 'Mozilla/5.0 Chrome/36.0.1941.0')]
+                urllib.request.install_opener(opener)
+
+                # contornar erros de certificado
+                ssl._create_default_https_context = ssl._create_unverified_context
+
                 urllib.request.urlretrieve(
-                    r'%s/%s' % (base_url, url_file), r'%s/%s' % (FileManager.main_folder, url_file))
+                    url_file, r'%s/%s' % (FileManager.main_folder, path_folders))
             # Previne para que um erro na pagina nao feche o programa
-            except Exception as e:
+            except error.HTTPError or error.URLError:
                 continue
 
     def savePage(url, page, main=False):
