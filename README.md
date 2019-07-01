@@ -1,2 +1,1 @@
-# Grafos_Test
-Repositório para treinar grafos.
+# Lista6_LucasMaciel_2019.1
