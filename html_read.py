@@ -118,36 +118,35 @@ class FileManager:
         print("BAIXANDO ARQUIVOS NECESSÁRIOS...")
         for url_file in tqdm(url_files):
             path_folders = re.sub(r'https?://', '', url_file)
-            # folders = re.split(r'/', path_folders)
-            # folders = folders[:-1]
-            # FileManager.create_folder(folders, main)
+            filename = re.split('/', path_folders)[-1]
+            complete_path = r'%s/%s' % (filepath, filename)
+            # apenas arquivos que nao estao na pasta local, vao ser baixados
+            if not os.path.exists(complete_path):
+                try:
+                    # antes de baixar, verifica se a url é absoluta(link completo)
+                    # exemplo = aaa.com.br/k.js
+                    # ou é uma url relativa a base_url da pagina
+                    if not re.search(r'https://|\S*(\.\S+)+/\S*\.\S+', url_file):
+                        url_file = r'%s/%s' % (base_url, url_file)
+                    else:
+                        # remove '//' de urls mal formatadas, ex: //link.com/dd.js
+                        url_file = re.sub(r'^/{2,}', 'https://', url_file)
+                    # Request para conseguir baixar de servidores que nao permitem bots
+                    # usa uma mascara para o servidor enxergar a requisicao como se fosse um
+                    # navegador conhecido
+                    opener = urllib.request.build_opener()
+                    opener.addheaders = [
+                        ('User-Agent', 'Mozilla/5.0 Chrome/36.0.1941.0')]
+                    urllib.request.install_opener(opener)
 
-            try:
-                # antes de baixar, verifica se a url é absoluta(link completo)
-                # exemplo = aaa.com.br/k.js
-                # ou é uma url relativa a base_url da pagina
-                if not re.search(r'https://|\S*(\.\S+)+/\S*\.\S+', url_file):
-                    url_file = r'%s/%s' % (base_url, url_file)
-                else:
-                    # remove '//' de urls mal formatadas, ex: //link.com/dd.js
-                    url_file = re.sub(r'^/{2,}', 'https://', url_file)
-                # Request para conseguir baixar de servidores que nao permitem bots
-                # usa uma mascara para o servidor enxergar a requisicao como se fosse um
-                # navegador conhecido
-                opener = urllib.request.build_opener()
-                opener.addheaders = [
-                    ('User-Agent', 'Mozilla/5.0 Chrome/36.0.1941.0')]
-                urllib.request.install_opener(opener)
+                    # contornar erros de certificado
+                    ssl._create_default_https_context = ssl._create_unverified_context
 
-                # contornar erros de certificado
-                ssl._create_default_https_context = ssl._create_unverified_context
-
-                filename = re.split('/', path_folders)[-1]
-                urllib.request.urlretrieve(
-                    url_file, r'%s/%s' % (filepath, filename))
-            # Previne para que um erro na pagina nao feche o programa
-            except error.HTTPError or error.URLError:
-                continue
+                    filename = re.split('/', path_folders)[-1]
+                    urllib.request.urlretrieve(url_file, complete_path)
+                # Previne para que um erro na pagina nao feche o programa
+                except error.HTTPError or error.URLError:
+                    continue
 
     def savePage(url, page, url_files, main=False):
         folders = []
