@@ -5,6 +5,7 @@ import re
 from socket import error as SocketError
 import errno
 import os
+from tqdm import tqdm  # barra de progresso
 
 
 class HtmlReader:
@@ -112,9 +113,10 @@ class FileManager:
                 except OSError:
                     continue
 
-    def download_file(base_url, url_files, main=False):
+    def download_file(base_url, url_files, filepath, main=False):
         # baixa os arquivos que precisam estar no armazenamento local
-        for url_file in url_files:
+        print("BAIXANDO ARQUIVOS NECESSÁRIOS...")
+        for url_file in tqdm(url_files):
             path_folders = re.sub(r'https?://', '', url_file)
             # folders = re.split(r'/', path_folders)
             # folders = folders[:-1]
@@ -129,7 +131,6 @@ class FileManager:
                 else:
                     # remove '//' de urls mal formatadas, ex: //link.com/dd.js
                     url_file = re.sub(r'^/{2,}', 'https://', url_file)
-                print("ARQUIVO = ", r'%s' % url_file)
                 # Request para conseguir baixar de servidores que nao permitem bots
                 # usa uma mascara para o servidor enxergar a requisicao como se fosse um
                 # navegador conhecido
@@ -143,7 +144,7 @@ class FileManager:
 
                 filename = re.split('/', path_folders)[-1]
                 urllib.request.urlretrieve(
-                    url_file, r'%s/%s' % (FileManager.main_folder, filename))
+                    url_file, r'%s/%s' % (filepath, filename))
             # Previne para que um erro na pagina nao feche o programa
             except error.HTTPError or error.URLError:
                 continue
@@ -174,7 +175,8 @@ class FileManager:
         FileManager.create_folder(folders, main)
         ####################################################################
         # salvar os arquivos necessarios
-        FileManager.download_file(url, url_files)
+        folderpath = '/'.join(re.split('/', filepath)[:-1])
+        FileManager.download_file(url, url_files, folderpath)
 
         file = open(filepath, 'w')
         file.write(r'%s' % (str(page)))

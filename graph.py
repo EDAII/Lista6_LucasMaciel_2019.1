@@ -103,7 +103,7 @@ class Graph:
 def main():
     url = "http://www.unb.br"
     initial_page = Object(url)
-    Graph.breadth_search(initial_page, 0)
+    Graph.breadth_search(initial_page, 2)
 
     print("\nLista de Paginas = ")
     for p in page_list:
