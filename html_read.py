@@ -61,8 +61,10 @@ class HtmlReader:
             path_folders = re.sub(r'https?://', '', url_file)
             filename = re.split('/', path_folders)[-1]
             content = content.replace(url_file, r'./%s' % filename)
+        # retirar base url padrao do html da pagina
+        content = re.sub(r'<.*base.*href="\S*".*/>',
+                         '<base href="." />', content)
         FileManager.savePage(base_url, content, url_files, main)
-        # trocar os links dos arquivos para a pasta local
         return urls
 
     def related_pages(content, base_url, same_domain=True, main=False):
@@ -168,10 +170,11 @@ class FileManager:
             folders = folders[:-1]
             filepath = r'%s/%s%s.html' % (FileManager.main_folder,
                                           FileManager.format_path(url, folders), filename)
-        ####################################################################
-        FileManager.download_file(url, url_files)
-        # variavel para concatenar o caminho de criacao das pastas
+        # criar as pastas
         FileManager.create_folder(folders, main)
+        ####################################################################
+        # salvar os arquivos necessarios
+        FileManager.download_file(url, url_files)
 
         file = open(filepath, 'w')
         file.write(r'%s' % (str(page)))
