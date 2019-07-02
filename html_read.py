@@ -6,6 +6,7 @@ from socket import error as SocketError
 import errno
 import os
 from tqdm import tqdm  # barra de progresso
+import sys
 
 
 class HtmlReader:
@@ -17,7 +18,6 @@ class HtmlReader:
                 pasta baseada na <title> da pagina principal, se nao, cria
                 as pastas baseadas na url
         '''
-
         print("\nPAGE: ", url)
         try:
             # spc = 'ISO-8859-1'
@@ -26,12 +26,12 @@ class HtmlReader:
                 url).read().decode(spc, 'ignore'))
             return str(response)
         # Previne para que um erro na pagina nao feche o programa
+        except error.HTTPError as e:
+            pass
         except SocketError as e:
             if e.errno != errno.ECONNRESET:
                 raise
             pass
-        except error.HTTPError as e:
-            print(e.reason)
 
     def get_files_urls(content, base_url, main=False):
         # seleciona as urls no formato ="/.<format>"
@@ -40,15 +40,15 @@ class HtmlReader:
         url_files = re.findall(r'[src|href]="%s"' % url_types, content)
         return url_files
 
-    def get_achievable_urls(content, base_url, same_domain=True, main=False):
+    def get_achievable_urls(main_url, content, base_url, same_domain=True, main=False):
         url_no_types = '(?!\S*\.pdf|\S*\.png|\S*\.jpg|\S*\.css|\S*\.js|\S*\.ico)\S*'
         if same_domain == True:
             # Verifica se a url pertence ao mesmo dominio do site principal
             # tambem retira urls com extensoes de arquivo(.pdf, .png, .jpg, .css, .js)
             # altera url para a regex da url verificada
-            base_url_regex = base_url.replace("http", "https?")
+            main_url_regex = main_url.replace("http", "https?")
             url_match = re.compile(
-                r'href="%s\/?%s"' % (base_url_regex, url_no_types))
+                r'href="%s\/?%s"' % (main_url_regex, url_no_types))
         else:
             url_match = re.compile(r'href="https?://%s"' % (url_no_types))
 
@@ -59,7 +59,7 @@ class HtmlReader:
         FileManager.savePage(base_url, content, url_pages, url_files, main)
         return url_pages
 
-    def related_pages(content, base_url, same_domain=True, main=False):
+    def related_pages(main_url, content, base_url, same_domain=True, main=False):
         '''
             **Funcao utilizada para Retornar os Vizinhos da Pagina atual**
             Funcao retorna as urls encontradas na pagina,
@@ -68,9 +68,8 @@ class HtmlReader:
             formato htpp(s) encontrados na pagina
         '''
         result = HtmlReader.get_achievable_urls(
-            content, base_url, same_domain, main)
+            main_url, content, base_url, same_domain, main)
 
-        # HtmlReader.get_files_urls(content, base_url, main)
         print("TAMANHO: ", len(result))
 
         for index in range(len(result)):
@@ -164,6 +163,20 @@ class FileManager:
         # criar as pastas
         FileManager.create_folder(folders, main)
 
+        # Se tiver o parametro -f nos parametros passados no terminal, entao baixa os arquivos
+        # e troca as urls nos htmls
+        if '-f' in sys.argv:
+            content = FileManager.swap_url(url_pages, url_files, content)
+            ####################################################################
+            # salvar os arquivos necessarios
+            folderpath = '/'.join(re.split('/', filepath)[:-1])
+            FileManager.download_file(url, url_files, folderpath)
+
+        file = open(filepath, 'w')
+        file.write(r'%s' % (str(content)))
+        file.close()
+
+    def swap_url(url_pages, url_files, content):
         # Troca urls das paginas para as que serao baixadas
         print("\n\nURLS")
         for url_page in url_pages:
@@ -180,12 +193,4 @@ class FileManager:
         # Retira base url padrao do html da pagina
         content = re.sub(r'<.*base.*href="\S*".*/>',
                          '<base href="." />', content)
-
-        ####################################################################
-        # salvar os arquivos necessarios
-        folderpath = '/'.join(re.split('/', filepath)[:-1])
-        FileManager.download_file(url, url_files, folderpath)
-
-        file = open(filepath, 'w')
-        file.write(r'%s' % (str(content)))
-        file.close()
+        return content

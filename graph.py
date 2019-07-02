@@ -1,5 +1,6 @@
 from copy import deepcopy
 from html_read import HtmlReader
+import sys
 
 # importar os metodos
 getPageHtml = HtmlReader.getPageHtml
@@ -39,15 +40,21 @@ class Graph:
             r.append(Object(value))
         return r
 
-    def create_relationship(node, base_url, main=False):
+    def create_relationship(main_url, node, base_url, main=False):
+        same_pages = True
+        if '-n' in sys.argv:
+            same_pages = False
         content = getPageHtml(node.url, main)
-        values = related_pages(content, base_url, True, main)
-        edges = Graph.create_nodes(values)
-        for edge in edges:
-            node.add_edge(edge)
-        return edges
+        if content:
+            values = related_pages(
+                main_url, content, base_url, same_pages, main)
+            edges = Graph.create_nodes(values)
+            for edge in edges:
+                node.add_edge(edge)
+            return edges
+        return []
 
-    def breadth_search(initial_page, max_layer=0):
+    def breadth_search(main_url, initial_page, max_layer=0):
         queue = []  # cria fila de execucao
         distance = 0
         # realiza uma copia, para nao afetar a variavel original
@@ -86,7 +93,7 @@ class Graph:
                     main = True
                 else:
                     main = False
-                u.edges = Graph.create_relationship(u, u.url, main)
+                u.edges = Graph.create_relationship(main_url, u, u.url, main)
                 for v in u.edges:
                     # nós que aparecem aqui, são os nós que foram referenciados
                     # por outros nós, como vizinhos
@@ -103,9 +110,17 @@ class Graph:
 def main():
     url = "http://www.unb.br"
     initial_page = Object(url)
-    Graph.breadth_search(initial_page, 2)
+    layers = 0
 
-    print("\nLista de Paginas = ")
+    if '-l' in sys.argv:
+        layers = int(input("Quantidade niveis para percorrer? "))
+    # Url da Pagina para realizar a busca em largura
+    entry = input("url: ")
+    url = entry if entry != '' else url
+    print(url)
+    Graph.breadth_search(url, initial_page, layers)
+
+    print("\nLista de Paginas = ", len(page_list))
     for p in page_list:
         print(p)
 
