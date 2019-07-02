@@ -20,7 +20,10 @@ class HtmlReader:
 
         print("\nPAGE: ", url)
         try:
-            response = str(urllib.request.urlopen(url).read().decode('utf8'))
+            # spc = 'ISO-8859-1'
+            spc = 'utf-8'
+            response = str(urllib.request.urlopen(
+                url).read().decode(spc, 'ignore'))
             return str(response)
         # Previne para que um erro na pagina nao feche o programa
         except SocketError as e:
@@ -50,23 +53,11 @@ class HtmlReader:
             url_match = re.compile(r'href="https?://%s"' % (url_no_types))
 
         # urls encontradas
-        urls = re.findall(url_match, str(content))
-        # troca as urls encontradas para as pastas locais
-        # for url in urls:
-        #     url_split = re.sub(r'https?://', '/', url)
-        #     content = content.replace(url, r'%s%s' %
-        #                               (url_split[:-1], '.html"'))
+        url_pages = re.findall(url_match, str(content))
         # salva as paginas em pastas (inclusive a pasta main)
         url_files = HtmlReader.get_files_urls(content, base_url, main)
-        for url_file in url_files:
-            path_folders = re.sub(r'https?://', '', url_file)
-            filename = re.split('/', path_folders)[-1]
-            content = content.replace(url_file, r'./%s' % filename)
-        # retirar base url padrao do html da pagina
-        content = re.sub(r'<.*base.*href="\S*".*/>',
-                         '<base href="." />', content)
-        FileManager.savePage(base_url, content, url_files, main)
-        return urls
+        FileManager.savePage(base_url, content, url_pages, url_files, main)
+        return url_pages
 
     def related_pages(content, base_url, same_domain=True, main=False):
         '''
@@ -126,7 +117,7 @@ class FileManager:
                     # antes de baixar, verifica se a url é absoluta(link completo)
                     # exemplo = aaa.com.br/k.js
                     # ou é uma url relativa a base_url da pagina
-                    if not re.search(r'https://|\S*(\.\S+)+/\S*\.\S+', url_file):
+                    if not re.search(r'https?://|\S*(\.\S+)+/\S*\.\S+', url_file):
                         url_file = r'%s/%s' % (base_url, url_file)
                     else:
                         # remove '//' de urls mal formatadas, ex: //link.com/dd.js
@@ -148,12 +139,12 @@ class FileManager:
                 except error.HTTPError or error.URLError:
                     continue
 
-    def savePage(url, page, url_files, main=False):
+    def savePage(url, content, url_pages, url_files, main=False):
         folders = []
         # extrair o titulo da pagina principal
         if main == True:
             folders.append(re.findall(
-                r'<title>.*</title>', page)[0].replace('<title>', '').replace('</title>', ''))
+                r'<title>.*</title>', content)[0].replace('<title>', '').replace('</title>', ''))
             urlname = re.sub(r'/$', '', (re.sub(r'https?://', '', url)))
             # ativa a pasta principal
             FileManager.main_folder = folders[0]
@@ -172,11 +163,29 @@ class FileManager:
                                           FileManager.format_path(url, folders), filename)
         # criar as pastas
         FileManager.create_folder(folders, main)
+
+        # Troca urls das paginas para as que serao baixadas
+        print("\n\nURLS")
+        for url_page in url_pages:
+            url_split = re.sub(r'https?://', './', url_page)
+            content = content.replace(url_page, r'%s%s' %
+                                      (url_split[:-1], '.html"'))
+
+        # Troca urls das Imagens
+        for url_file in url_files:
+            path_folders = re.sub(r'https?://', '', url_file)
+            filename = re.split('/', path_folders)[-1]
+            content = content.replace(url_file, r'./%s' % filename)
+
+        # Retira base url padrao do html da pagina
+        content = re.sub(r'<.*base.*href="\S*".*/>',
+                         '<base href="." />', content)
+
         ####################################################################
         # salvar os arquivos necessarios
         folderpath = '/'.join(re.split('/', filepath)[:-1])
         FileManager.download_file(url, url_files, folderpath)
 
         file = open(filepath, 'w')
-        file.write(r'%s' % (str(page)))
+        file.write(r'%s' % (str(content)))
         file.close()
